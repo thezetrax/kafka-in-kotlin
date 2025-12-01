@@ -2,6 +2,7 @@ import java.io.BufferedReader
 import java.io.DataOutputStream
 import java.io.InputStreamReader
 import java.net.ServerSocket
+import java.nio.ByteBuffer
 
 fun main(args: Array<String>) {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -18,13 +19,16 @@ fun main(args: Array<String>) {
     while(true) {
         val socket = serverSocket.accept()
         socket.use { client ->
-            val inputStream = BufferedReader(InputStreamReader(client.getInputStream()))
+            val inputStream = client.getInputStream()
             val outputStream = DataOutputStream(client.getOutputStream())
 
-            inputStream.readLine() // Read the request line
+            val messageSize = ByteBuffer.wrap(inputStream.readNBytes(4)).getInt()
+            val messageBytes = inputStream.readNBytes(messageSize)
+
+            val correlationId = messageBytes.slice(4 until 8).toByteArray()
 
             outputStream.writeInt(0)
-            outputStream.writeInt(7)
+            outputStream.write(correlationId)
             outputStream.flush()
 
             println("accepted new connection")
